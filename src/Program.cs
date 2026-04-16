@@ -46,6 +46,8 @@ class Program
 				else Raylib.EnableCursor();
 			}
 
+			// RaylibGizmo.UpdateGizmoTranslation(ref transform, camera);
+
 			Raylib.BeginDrawing();
 			Raylib.ClearBackground(Color.Black);
 			Raylib.BeginMode3D(camera);
@@ -57,6 +59,7 @@ class Program
 			Raylib.DrawGrid(10, 1);
 			// RaylibGizmo.DrawGizmo3D(ref transform);
 			RaylibGizmo.DrawGizmo3DPro(ref transform, local);
+			RaylibGizmo.UpdateGizmoTranslationGlobal(ref transform, Vector3.UnitX, camera);
 
 			Raylib.DrawText("Press space to toggle between local and global", 10, 10, 16, Color.White);
 

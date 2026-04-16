@@ -10,6 +10,7 @@ class RaylibGizmo
 
 	// Changes how large the thing is rendered visually or whatever
 	public static float DrawScale { get; set; } = 1f;
+	
 	private static float centerRadius => DrawScale * 0.03f;
 	private static float axisThickness => DrawScale * 0.01f;
 	private static float axisLength => DrawScale * 0.5f;
@@ -56,8 +57,6 @@ class RaylibGizmo
 			DrawAxisGlobal(transform, Vector3.UnitY, YColor);
 			DrawAxisGlobal(transform, Vector3.UnitZ, ZColor);
 		}
-
-		CheckForAxisCollision(transform, Vector3.UnitX);
 	}
 
 	// TODO: Don't just copy paste all this for local/global
@@ -100,25 +99,49 @@ class RaylibGizmo
 		Raylib.DrawCylinderEx(coneStart.Translation, end.Translation, coneBaseThickness, 0f, 8, color);
 	}
 
+	public static void UpdateGizmoTranslationGlobal(ref Transform transform, Vector3 axis, Camera3D camera)
+	{
+		// Check for if we're hovering over the hitbox
+		BoundingBox hitbox = GenerateAxisHitbox(transform, axis);
+
+		// Raycast to check if the mouse is over the axis
+		Ray ray = Raylib.GetScreenToWorldRay(Raylib.GetMousePosition(), camera);
+		RayCollision collision = Raylib.GetRayCollisionBox(ray, hitbox);
+		if (collision.Hit)
+		{
+			// If we're clicking then we are dragging
+			if (Raylib.IsMouseButtonDown(MouseButton.Left))
+			{
+				//! Get where the mouse is in 3D space and use it's axis to reposition
+
+				// Vector2 mouseDelta = Raylib.GetMouseDelta();
+
+				// transform.TranslateGlobal(ray.Position);
+			}
+		}
+	}
+
 	//! This will NOT work for local/rotated ones. Maybe use like collisions instead idk
-	private static void CheckForAxisCollision(Transform transform, Vector3 axis)
+	private static BoundingBox GenerateAxisHitbox(Transform transform, Vector3 axis)
 	{
 		// Make a hitbox that's roughly the size of the axis
 		float boxSize = coneBaseThickness * 2f;
+		float boxLength = axisLength + coneLength;
 
-		Vector3 start = transform.Translation + axis * (centerRadius * 2f);
-		Vector3 end = transform.Translation + axis * ((centerRadius * 2f) + axisLength + coneLength);
-		Vector3 thickness = new Vector3(boxSize);
+		// 'Extend' the box on the axis by the length
+		Vector3 end = new Vector3(boxSize) + (axis * boxLength);
+		Vector3 start = transform.Translation;
 
+		// TODO: Make the box in the centre of the thing (x / 2f)
 		BoundingBox hitbox = new BoundingBox(
-			Vector3.Min(start, end) - thickness,
-			Vector3.Max(start, end) + thickness
+			Vector3.Min(start, end),
+			Vector3.Max(start, end)
 		);
 
 		//! debug draw
-		Raylib.DrawCubeWiresV(hitbox.Min, hitbox.Max, Color.Magenta);
+		Raylib.DrawBoundingBox(hitbox, Color.Magenta);
 
-		// Raycast to check for if it's being clicked on
+		return hitbox;
 	}
 
 	// TODO: DO this
