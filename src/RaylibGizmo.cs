@@ -17,7 +17,9 @@ class RaylibGizmo
 	private static float coneLength => DrawScale * 0.1f;
 	private static float coneBaseThickness => axisThickness * 2f;
 
-	public static bool HasPermissionToChangeCursor { get; set; } = true;
+	private static bool draggingRn = false;
+	private static Vector3 dragStartPosition;
+	private static Vector3 gizmoStartPosition;
 
 	public static void SetColors(Color x, Color y, Color z, Color center)
 	{
@@ -107,18 +109,53 @@ class RaylibGizmo
 		// Raycast to check if the mouse is over the axis
 		Ray ray = Raylib.GetScreenToWorldRay(Raylib.GetMousePosition(), camera);
 		RayCollision collision = Raylib.GetRayCollisionBox(ray, hitbox);
-		if (collision.Hit)
+
+		// Get the plane normal facing the camera
+		Vector3 plane = camera.Target - camera.Position;
+		plane = Vector3.Normalize(plane);
+
+		// Check for if we are beginning a drag
+		if (collision.Hit && Raylib.IsMouseButtonPressed(MouseButton.Left))
 		{
-			// If we're clicking then we are dragging
-			if (Raylib.IsMouseButtonDown(MouseButton.Left))
-			{
-				//! Get where the mouse is in 3D space and use it's axis to reposition
+			draggingRn = true;
 
-				// Vector2 mouseDelta = Raylib.GetMouseDelta();
-
-				// transform.TranslateGlobal(ray.Position);
-			}
+			// Save our start position
+			dragStartPosition = Get3DPositionOnPlane(ray, transform.Translation, plane);
+			gizmoStartPosition = transform.Translation;
 		}
+
+		// Check for if we are gonna stop dragging
+		if (draggingRn && Raylib.IsMouseButtonReleased(MouseButton.Left))
+		{
+			draggingRn = false;
+			return;
+		}
+
+		// Check for if we are currently dragging
+		if (draggingRn)
+		{
+			// Check for how much we've moved
+			Vector3 currentPointOnPlane = Get3DPositionOnPlane(ray, transform.Translation, plane);
+			Vector3 amountDragged = currentPointOnPlane - dragStartPosition;
+
+			// Project it onto the plane so we
+			// just move on the single axis
+			float amount = Vector3.Dot(amountDragged, axis);
+			Vector3 movement = axis * amount;
+
+			// Move the gizmo
+			transform.Translation = gizmoStartPosition + movement;
+		}
+	}
+
+	//? I do not understand any of this
+	private static Vector3 Get3DPositionOnPlane(Ray ray, Vector3 planeOrigin, Vector3 normal)
+	{
+		float difference = Vector3.Dot(normal, ray.Direction);
+		if (MathF.Abs(difference) < 0.00001f) return normal;
+
+		float distanceAlongRay = Vector3.Dot(planeOrigin - ray.Position, normal) / difference;
+		return ray.Position + ray.Direction * distanceAlongRay;
 	}
 
 	//! This will NOT work for local/rotated ones. Maybe use like collisions instead idk
